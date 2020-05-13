@@ -42,7 +42,6 @@ void RNAModelGen::generate2DModel(QString filepath){
     rnaPlot->write(array);
 
     rnaPlot->waitForFinished();
-    rnaPlot->closeWriteChannel();
 }
 
 void RNAModelGen::processError(QProcess::ProcessError error){

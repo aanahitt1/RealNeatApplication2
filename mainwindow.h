@@ -47,7 +47,7 @@ private:
     QDialog* createAlgoList();
     bool checkSequence(QString* sequence);
     IAlgorithm* loader(QString* filepath, QString name);
-    void showTab(QMap<QString, double>, IAlgorithm*);
+    void showTab(QMap<QString, double> options, QSharedPointer<IAlgorithm> algo, int number);
     void populateList(QString*);
 
     QString file_path;

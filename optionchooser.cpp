@@ -1,40 +1,48 @@
 #include "optionchooser.h"
 
-OptionChooser::OptionChooser(QMap<QString, double> opt)
+OptionChooser::OptionChooser(QList<QMap<QString, double>>* opt, QStringList* names)
 {
     //This copies the opt list to options so we have the right size list.
-    options = opt;
+    options = opt->at(0);
 
     //Create Dialog
-    main = new QDialog();
+    main = new QTabWidget();
     main->resize(300,300);
-    QGridLayout* back = new QGridLayout(main);
-    optList = new QListWidget();
-    QPushButton* ok = new QPushButton("OK");
-    QLabel* label = new QLabel("Options: ");
-    back->cellRect(3, 1);
-    back->addWidget(label, 1, 1);
-    back->addWidget(optList, 2, 1);
-    back->addWidget(ok, 3, 1);
+    for(int j = 0; j<names->length(); j++) {
+            //This copies the opt list to options so we have the right size list.
+            options = opt->at(j);
 
-    connect(ok, &QPushButton::clicked, [=]() {
-        main->hide();
-        emit boxClosed(options);
-    });
+            //Create tab
+            QWidget* window = new QWidget();
+            QGridLayout* back = new QGridLayout(window);
+            optList = new QListWidget();
+            QPushButton* ok = new QPushButton("OK");
+            QLabel* label = new QLabel("Options: ");
+            back->cellRect(3, 1);
+            back->addWidget(label, 1, 1);
+            back->addWidget(optList, 2, 1);
+            back->addWidget(ok, 3, 1);
 
-    //Adds the items to the list
-    int i =0;
-    QMapIterator<QString, double> itr(options);
-    while(itr.hasNext()) {
-        itr.next();
-        optList->addItem(itr.key());
-        QListWidgetItem* item = optList->item(i);
-        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-        item->setCheckState(Qt::Unchecked);
-        i++;
-    }
+            connect(ok, &QPushButton::clicked, [=]() {
+                main->hide();
+                emit boxClosed(options, j);
+            });
 
-    connect(optList, &QListWidget::itemChanged, [=](QListWidgetItem* item) {getNumber(item);});
+            //Adds the items to the list
+            int i =0;
+            QMapIterator<QString, double> itr(options);
+            while(itr.hasNext()) {
+                itr.next();
+                optList->addItem(itr.key());
+                QListWidgetItem* item = optList->item(i);
+                item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+                item->setCheckState(Qt::Unchecked);
+                i++;
+            }
+            main->addTab(window, names->at(j));
+
+            connect(optList, &QListWidget::itemChanged, [=](QListWidgetItem* item) {getNumber(item);});
+        }
 }
 
 void OptionChooser::getNumber(QListWidgetItem *item) {

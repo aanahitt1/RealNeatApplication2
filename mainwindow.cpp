@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     //This sets up the main window and sets all bases as they should be.
     ui->setupUi(this);
     file_path = "";
-    directory_path = "..\\Documents";
+    directory_path = QDir::currentPath();
     FASTAcount = 0;
     algoList = NULL;
     tabWindow = new GraphicsWindow();
@@ -184,11 +184,13 @@ void MainWindow::on_pushButton_3_clicked()
 
     //Here we create a list of the selected algorithms.
     QList<QSharedPointer<IAlgorithm>>* selectedAlgo = new QList<QSharedPointer<IAlgorithm>>();
+    QList<QMap<QString, double>>* selectedOptions = new QList<QMap<QString, double>>();
+    QStringList* names = new QStringList();
     ParseXML* gopher = new ParseXML();
     for (int i = 0; i < algoList->count(); i++) {
         if(algoList->item(i)->checkState() == Qt::Checked) {
             //Checks to see if we can load the algorithms.
-            IAlgorithm* algoObject = loader(gopher->getPath(":/res/Config.xml", i), algoList->item(i)->text());
+            IAlgorithm* algoObject = loader(gopher->getPath("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", i), algoList->item(i)->text());
             if(algoObject == NULL) {
                 QMessageBox::critical(this, "ERROR", "Algorithm not available");
                 break;
@@ -197,14 +199,8 @@ void MainWindow::on_pushButton_3_clicked()
             //Here we get the option list so we can offer it to the user
             QMap<QString, double> options = algoObject->getOptions();
 
-            OptionChooser* opt = new OptionChooser(options);
-            opt->show();
-
-            //The connect needs to bring everything together - the graphics window only shows when the options are chosen and
-            //OptionChooser is closed.
-            connect(opt, &OptionChooser::boxClosed, [=](QMap<QString, double> options) {
-                showTab(options, algoObject);
-            });
+            selectedOptions->append(options);
+            names->append(algoList->item(i)->text());
 
             QSharedPointer<IAlgorithm> ptr(algoObject);
             selectedAlgo->push_back(ptr);
@@ -213,27 +209,45 @@ void MainWindow::on_pushButton_3_clicked()
     if(selectedAlgo->isEmpty()) {
         QMessageBox::critical(this, "ERROR", "No algorithms chosen.");
         return;
+    } else {
+        OptionChooser* opt = new OptionChooser(selectedOptions, names);
+        opt->show();
+        connect(opt, &OptionChooser::boxClosed, [=](QMap<QString, double> options, int i) {
+                        showTab(options, selectedAlgo->at(i), i);
+                    });
     }
 
 }
 
 //This algorithm takes the options, runs it to the IAlgorithm, and puts the structure into the FASTA, then opens the tab
-void MainWindow::showTab(QMap<QString, double> options, IAlgorithm* algo) {
+void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorithm> algo, int number) {
     QString structure = algo->initiate(file_path, options);
 
-    //Add structure to FASTA
+    //Create new file with structure
     QFile fasta(file_path);
-    if(fasta.open(QIODevice::ReadWrite | QIODevice::Append | QIODevice::Text)) {
-        QTextStream stream(&fasta);
+    QFileInfo forName(file_path);
+    QString filename = directory_path + "/" + forName.baseName() + QString::number(number) + ".fasta";
+    qInfo() << filename;
+    if(fasta.open(QIODevice::ReadOnly)) {
 
-        stream << "\n" << structure;
-        stream.flush();
+        QFile fstruct(filename);
+        bool b = fstruct.open(QIODevice::WriteOnly);
+        if(b){
 
-        fasta.close();
+            qInfo() << "Open";
+
+            QTextStream stream(&fstruct);
+
+            stream << fasta.readAll();
+            stream << "\n" << structure;
+            stream.flush();
+
+            fasta.close();
+            fstruct.close();
+        }
     }
 
-    tabWindow->show(file_path);
-
+    tabWindow->show(filename);
 }
 
 //This method loads the dll from the given filepath and returns it in type IAlgorithm
