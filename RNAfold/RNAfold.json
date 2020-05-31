@@ -1,0 +1,6 @@
+{
+        "plugin_data": {
+                "plugin_name": "RNAfold",
+                "plugin_desc": "Calculate minimum free energy secondary structures and partition function of RNAs"
+        }
+}
