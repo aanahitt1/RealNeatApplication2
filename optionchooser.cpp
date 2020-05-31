@@ -18,13 +18,15 @@ OptionChooser::OptionChooser(QList<QMap<QString, double>>* opt, QStringList* nam
             optList = new QListWidget();
             QPushButton* ok = new QPushButton("OK");
             QLabel* label = new QLabel("Options: ");
-            back->cellRect(3, 1);
-            back->addWidget(label, 1, 1);
-            back->addWidget(optList, 2, 1);
-            back->addWidget(ok, 3, 1);
+            QLabel* info = new QLabel("Please hit 'OK' on each tab to generate an image after choosing options, and exit when finished.");
+            info->setWordWrap(true);
+            back->cellRect(4, 1);
+            back->addWidget(info, 1, 1);
+            back->addWidget(label, 2, 1);
+            back->addWidget(optList, 3, 1);
+            back->addWidget(ok, 4, 1);
 
             connect(ok, &QPushButton::clicked, [=]() {
-                main->hide();
                 emit boxClosed(options, j);
             });
 

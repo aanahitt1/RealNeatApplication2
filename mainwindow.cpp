@@ -12,6 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     FASTAcount = 0;
     algoList = NULL;
     tabWindow = new GraphicsWindow();
+    configPath = "C:/Users/Anahit/Documents/RealNeatApplication2-UI/RealNeatApplication2-UI/config.xml";
     createFileBar();
     setWindowTitle("Real Neat Application");
 }
@@ -47,12 +48,12 @@ void MainWindow::createFileBar()
       connect(Algorithms, &QAction::triggered, listDialog, &QDialog::show);
 
       //This shows the plugin Manager
-      manager = new PluginManager(algoList);
+      manager = new PluginManager(algoList, configPath);
       connect(plugin, &QAction::triggered, [=]() {manager->show();});
       //This refreshes the algoList after a change
       connect(manager, &PluginManager::listChanged, [=](){
           ParseXML* gopher = new ParseXML();
-          QString* names = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "name");
+          QString* names = gopher->getInfo(configPath, "name");
 
           populateList(names);
       });
@@ -89,8 +90,8 @@ QDialog* MainWindow::createAlgoList() {
     connect(ok, &QPushButton::clicked, list, &QDialog::hide);
 
     ParseXML* gopher = new ParseXML();
-    QString* names = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "name");
-    QString* desc = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "desc");
+    QString* names = gopher->getInfo(configPath, "name");
+    QString* desc = gopher->getInfo(configPath, "desc");
 
     populateList(names);
 
@@ -190,7 +191,7 @@ void MainWindow::on_pushButton_3_clicked()
     for (int i = 0; i < algoList->count(); i++) {
         if(algoList->item(i)->checkState() == Qt::Checked) {
             //Checks to see if we can load the algorithms.
-            IAlgorithm* algoObject = loader(gopher->getPath("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", i), algoList->item(i)->text());
+            IAlgorithm* algoObject = loader(gopher->getPath(configPath, i), algoList->item(i)->text());
             if(algoObject == NULL) {
                 QMessageBox::critical(this, "ERROR", "Algorithm not available");
                 break;
@@ -213,7 +214,7 @@ void MainWindow::on_pushButton_3_clicked()
         OptionChooser* opt = new OptionChooser(selectedOptions, names);
         opt->show();
         connect(opt, &OptionChooser::boxClosed, [=](QMap<QString, double> options, int i) {
-                        showTab(options, selectedAlgo->at(i), i);
+                        showTab(options, selectedAlgo->at(i), i+1);
                     });
     }
 
@@ -226,8 +227,7 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
     //Create new file with structure
     QFile fasta(file_path);
     QFileInfo forName(file_path);
-    QString filename = directory_path + "/" + forName.baseName() + QString::number(number) + ".fasta";
-    qInfo() << filename;
+    QString filename = directory_path + "/" + forName.baseName() + "_" + QString::number(number) + ".fasta";
     if(fasta.open(QIODevice::ReadOnly)) {
 
         QFile fstruct(filename);
@@ -238,7 +238,13 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
 
             QTextStream stream(&fstruct);
 
-            stream << fasta.readAll();
+            QString temp = fasta.readLine();
+            temp = temp.remove(QRegularExpression("[\\s]"));
+            stream << temp;
+            stream << "_" << QString::number(number) << "\n";
+            while(!fasta.atEnd()) {
+                stream << fasta.readLine();
+            }
             stream << "\n" << structure;
             stream.flush();
 
@@ -285,3 +291,52 @@ bool MainWindow::checkSequence(QString* seq) {
 
     return valid;
 }
+
+
+// This method is for debugging the plugin path.
+QString MainWindow::initiate(QString filepath, QMap<QString, double> opt) {
+
+    QString structure = "";
+    QString lib_path = "C:\\Program Files (x86)\\ViennaRNA Package\\RNAPKplex.exe";
+    QStringList rnaFoldArgs;
+
+    QProcess* proc = new QProcess();
+
+    // generate temp file for RNAFold input
+    QFile *seq = new QFile(filepath);
+
+    if(!seq->open(QIODevice::ReadOnly)){
+        printf("error opening file.");
+    }
+
+    seq->waitForReadyRead(-1);
+
+    if(!seq->isReadable())
+        printf("not ready to read file");
+
+    // set process argumemts
+    //TODO:Remember how these are going to be returned to this class
+    qInfo() << seq->fileName();
+
+    //start RNAfold;
+    proc->setProgram(lib_path);
+    proc->setStandardInputFile(seq->fileName());
+    proc->start(QIODevice::ReadWrite);
+    if(!proc->waitForStarted()) {
+        qInfo() << "Process not started.";
+    }
+    proc->waitForReadyRead();
+    proc->waitForFinished();
+    structure = proc->readAllStandardOutput();
+    proc->close();
+
+    qInfo() << structure;
+    structure = structure.remove(QRegularExpression("[a-zA-Z>\\d\\s]"));
+    int length = structure.length();
+    structure = structure.left(length-4);
+
+    qInfo() << structure;
+
+    return structure;
+}
+

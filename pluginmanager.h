@@ -17,7 +17,7 @@ class PluginManager : public QObject
     Q_OBJECT
 
 public:
-    PluginManager(QListWidget* algoList);
+    PluginManager(QListWidget* algoList, QString);
 
     void show();
 
@@ -28,6 +28,7 @@ private:
 
     QDialog* main;
     QListWidget* algo;
+    QString configPath;
 
 signals:
     void listChanged();

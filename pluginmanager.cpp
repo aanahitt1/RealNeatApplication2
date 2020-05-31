@@ -1,10 +1,11 @@
 #include "pluginmanager.h"
 
-PluginManager::PluginManager(QListWidget* algoList)
+PluginManager::PluginManager(QListWidget* algoList, QString config)
 {
     //Create the Dialog
     main = new QDialog();
     main->resize(400, 300);
+    configPath = config;
 
     algo = new QListWidget();
     for(int i =0; i<algoList->count(); i++) {
@@ -53,7 +54,7 @@ void PluginManager::addAlgo() {
             QString desc = data["plugin_desc"].toString();
 
             ParseXML* gopher = new ParseXML();
-            gopher->addItem("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", name, desc, *filepath);
+            gopher->addItem(configPath, name, desc, *filepath);
         }
 
 
@@ -69,7 +70,7 @@ void PluginManager::removeAlgo() {
     for(int i =0; i<algo->count(); i++) {
         if(algo->item(i)->checkState() == Qt::Checked) {
             ParseXML* gopher = new ParseXML();
-            gopher->removeByName("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", algo->item(i)->text());
+            gopher->removeByName(configPath, algo->item(i)->text());
             algo->takeItem(i);
             delete gopher;
         }
