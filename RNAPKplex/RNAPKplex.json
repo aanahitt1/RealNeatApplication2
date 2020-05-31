@@ -1,0 +1,6 @@
+{
+        "plugin_data": {
+                "plugin_name": "RNAPKplex",
+                "plugin_desc": "Predicts RNA secondary structures including pseudoknots"
+        }
+}
