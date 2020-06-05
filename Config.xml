@@ -1,6 +1,6 @@
 <!-- Config.xml -->
 <Algorithms>
- <Program desc="Predicts RNA secondary structures including pseudoknots" name="RNAPKplex">C:\Users\Anahit\Documents\RNAPKplex\debug\RNAPKplex.dll</Program>
+ <Program desc="Predicts RNA secondary structures including pseudoknots" name="RNAPKplex">C:\Users\Nick\Documents\Plugins\build-RNAPKplex-Desktop_Qt_5_15_0_MinGW_64_bit-Release\release\RNAPKplex.dll</Program>
  <Program desc="Method that takes advantage of the evolutionary history of a group of aligned RNA sequences for sampling consensus secondary structures, including pseudoknots, according to their approximate posterior probability." name="PhyloQFold">C:/user/Anahit/Documents/PhyloQFold</Program>
  <Program desc="RNAfold.exe as provided by ViennaRNA" name="RNAfold">C:/Users/Anahit/Documents/RNAFold(1)/RNAFold</Program>
 </Algorithms>

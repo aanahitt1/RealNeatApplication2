@@ -5,6 +5,10 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    XML_CONFIG_FILE = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0)
+            + "/RealNeatApplication2/Config.xml";
+    qInfo() << "XML Config: " << XML_CONFIG_FILE;
+
     //This sets up the main window and sets all bases as they should be.
     ui->setupUi(this);
     file_path = "";
@@ -14,6 +18,12 @@ MainWindow::MainWindow(QWidget *parent)
     tabWindow = new GraphicsWindow();
     createFileBar();
     setWindowTitle("Real Neat Application");
+
+
+#ifdef QT_DEBUG
+// set a default destination directory
+    directory_path = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0);
+#endif
 }
 
 MainWindow::~MainWindow()
@@ -50,9 +60,9 @@ void MainWindow::createFileBar()
       manager = new PluginManager(algoList);
       connect(plugin, &QAction::triggered, [=]() {manager->show();});
       //This refreshes the algoList after a change
-      connect(manager, &PluginManager::listChanged, [=](){
+     connect(manager, &PluginManager::listChanged, [=](){
           ParseXML* gopher = new ParseXML();
-          QString* names = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "name");
+          QString* names = gopher->getInfo(XML_CONFIG_FILE, "name");
 
           populateList(names);
       });
@@ -89,8 +99,8 @@ QDialog* MainWindow::createAlgoList() {
     connect(ok, &QPushButton::clicked, list, &QDialog::hide);
 
     ParseXML* gopher = new ParseXML();
-    QString* names = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "name");
-    QString* desc = gopher->getInfo("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", "desc");
+    QString* names = gopher->getInfo(XML_CONFIG_FILE, "name");
+    QString* desc = gopher->getInfo(XML_CONFIG_FILE, "desc");
 
     populateList(names);
 
@@ -115,6 +125,14 @@ void MainWindow::populateList(QString* names) {
         item->setCheckState(Qt::Unchecked);
         i++;
     }
+
+    //set first element to checked (for my debugging sanity really)
+    if(algoList->count() > 0){
+    QListWidgetItem* item = algoList->item(0);
+    item->setCheckState(Qt::Checked);
+    } else
+        qWarning() << "Algorithm List is Empty!";
+
 }
 
 void MainWindow::on_listItem_changed(QListWidgetItem* list, QLabel* description, QString* names, QString* desc) {
@@ -143,9 +161,12 @@ void MainWindow::on_pushButton_clicked()
 }
 
 //This method takes in a .txt or .FASTA file. It turns a .txt file into a .FASTA file and sets the .FASTA file's path as file_path.
+// BUTTON: "Upload File"
 void MainWindow::on_pushButton_2_clicked()
 {
-    QString filename = QFileDialog::getOpenFileName(this, "Open Sequence", "..\\documents", "Text files (*.txt);;FASTA files (*.FASTA)");
+    QString filename = QFileDialog::getOpenFileName(this, "Open Sequence",
+                                                    QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0),
+                                                    "FASTA files (*.FASTA);;Text files (*.txt)");
     if(filename.contains(".txt")) {
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly)) {
@@ -171,6 +192,8 @@ void MainWindow::on_pushButton_2_clicked()
     } else {
         file_path = filename;
     }
+
+
 }
 
 //This method checks to make sure a sequence has been selected and an algorithm has been selected, and sends the file to the selected
@@ -190,7 +213,7 @@ void MainWindow::on_pushButton_3_clicked()
     for (int i = 0; i < algoList->count(); i++) {
         if(algoList->item(i)->checkState() == Qt::Checked) {
             //Checks to see if we can load the algorithms.
-            IAlgorithm* algoObject = loader(gopher->getPath("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", i), algoList->item(i)->text());
+            IAlgorithm* algoObject = loader(gopher->getPath(XML_CONFIG_FILE, i), algoList->item(i)->text());
             if(algoObject == NULL) {
                 QMessageBox::critical(this, "ERROR", "Algorithm not available");
                 break;
@@ -227,27 +250,27 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
     QFile fasta(file_path);
     QFileInfo forName(file_path);
     QString filename = directory_path + "/" + forName.baseName() + QString::number(number) + ".fasta";
-    qInfo() << filename;
+
     if(fasta.open(QIODevice::ReadOnly)) {
 
         QFile fstruct(filename);
         bool b = fstruct.open(QIODevice::WriteOnly);
         if(b){
 
-            qInfo() << "Open";
-
             QTextStream stream(&fstruct);
 
             stream << fasta.readAll();
+            structure.remove('_'); // some algorithms are adding '_' onto structure
+                                   // and it will not graph if its not removed
             stream << "\n" << structure;
             stream.flush();
 
             fasta.close();
             fstruct.close();
         }
-    }
 
-    tabWindow->show(filename);
+        tabWindow->show(filename);
+    }
 }
 
 //This method loads the dll from the given filepath and returns it in type IAlgorithm
@@ -267,6 +290,10 @@ IAlgorithm* MainWindow::loader(QString* libpath, QString name) {
             IAlgorithm* success = temp();
             return success;
         }
+    } else {
+        qCritical() << "Failed to open DLL. Library: " << libpath;
+
+        qCritical() << customDLL.errorString();
     }
     return NULL;
 }

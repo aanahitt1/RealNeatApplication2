@@ -30,6 +30,10 @@ PluginManager::PluginManager(QListWidget* algoList)
     connect(remove, &QPushButton::clicked, [=]() {removeAlgo();});
     connect(add, &QPushButton::clicked, [=]() {addAlgo();});
 
+    QString XML_CONFIG_FILE = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0)
+            + "/RealNeatApplication2/Config.xml";
+
+
 }
 
 //This lets you choose a library and add it to the application
@@ -53,7 +57,7 @@ void PluginManager::addAlgo() {
             QString desc = data["plugin_desc"].toString();
 
             ParseXML* gopher = new ParseXML();
-            gopher->addItem("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", name, desc, *filepath);
+            gopher->addItem(XML_CONFIG_FILE, name, desc, *filepath);
         }
 
 
@@ -69,7 +73,7 @@ void PluginManager::removeAlgo() {
     for(int i =0; i<algo->count(); i++) {
         if(algo->item(i)->checkState() == Qt::Checked) {
             ParseXML* gopher = new ParseXML();
-            gopher->removeByName("C:/Users/Anahit/Documents/RealNeatApplication/Config.xml", algo->item(i)->text());
+            gopher->removeByName(XML_CONFIG_FILE, algo->item(i)->text());
             algo->takeItem(i);
             delete gopher;
         }

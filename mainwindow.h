@@ -8,6 +8,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QStandardPaths>
 #include <QListWidget>
 #include <QGridLayout>
 #include <QLabel>
@@ -49,6 +50,7 @@ private:
     IAlgorithm* loader(QString* filepath, QString name);
     void showTab(QMap<QString, double> options, QSharedPointer<IAlgorithm> algo, int number);
     void populateList(QString*);
+    QString XML_CONFIG_FILE;
 
     QString file_path;
     QString directory_path;

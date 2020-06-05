@@ -5,7 +5,6 @@
 #include <QGraphicsPixmapItem>
 #include <QPixmap>
 #include <QFileDialog>
-
 #include <QPalette>
 #include <QSvgWidget>
 #include <QScrollArea>
@@ -22,20 +21,13 @@ GraphicsWindow::GraphicsWindow()
 
 void GraphicsWindow::show(QString filepath){
 
+   //This generates the 2D plot
+   RNAModelGen *rnaGen = new RNAModelGen();
+   QFile* svg_image = rnaGen->generate2DModel(filepath);
+   svgImage = new QSvgWidget( svg_image->fileName() );
 
 
-    //This generates the 2D plot
-    RNAModelGen *rnaGen = new RNAModelGen();
-    rnaGen->generate2DModel(filepath);
-
-    QFileInfo getName(filepath);
-
-   QString fileName = ".\\";
-   fileName.append(getName.baseName());
-   fileName.append("_ss.svg");
-   svgImage = new QSvgWidget(fileName);
-
-   svgImage->resize(500,500);
+   //svgImage->resize(500,500);
    svgImage->setStyleSheet("background-color:white");
 
    QPalette pal(QPalette::Background, Qt::white);
@@ -45,6 +37,7 @@ void GraphicsWindow::show(QString filepath){
    QScrollArea *area = new QScrollArea();
    area->setWidget(svgImage);
    area->setAlignment(Qt::AlignCenter);
+   area->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
    area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
    area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
    area->horizontalScrollBar()->setStyleSheet("QScrollBar {height:0px;}");
@@ -58,6 +51,9 @@ void GraphicsWindow::show(QString filepath){
    //Adds the tab to our base widget
    tabWindow->addTab(area, QString(name));
    tabWindow->show();
+
+   //remove file that is loaded so directory isn't over filled
+   // svg_image->remove();
 }
 
 void GraphicsWindow::processDOne(QProcess::ProcessError error)

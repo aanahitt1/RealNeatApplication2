@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QString>
+#include <QStandardPaths>
 #include <QMessageBox>
 #include <QFileDialog>
 #include "parsexml.h"
@@ -28,6 +29,10 @@ private:
 
     QDialog* main;
     QListWidget* algo;
+
+    QString XML_CONFIG_FILE;
+
+
 
 signals:
     void listChanged();
