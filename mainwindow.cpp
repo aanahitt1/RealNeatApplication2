@@ -248,16 +248,18 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
 
     //Create new file with structure
     QFile fasta(file_path);
-    QFileInfo forName(file_path);
-    QString filename = directory_path + "/" + forName.baseName() + QString::number(number) + ".fasta";
+
+    //create unique file to write structure to
+    QTemporaryFile* unique_ss = new QTemporaryFile("rnaStructXXXXXX_ss.fasta");
+    unique_ss->setAutoRemove(false);
+    if(!unique_ss->open()){
+         qCritical() << "Did not open temp file!";
+     }else
+         qCritical() << "RNAStruct File name: " << unique_ss->fileName();
 
     if(fasta.open(QIODevice::ReadOnly)) {
 
-        QFile fstruct(filename);
-        bool b = fstruct.open(QIODevice::WriteOnly);
-        if(b){
-
-            QTextStream stream(&fstruct);
+            QTextStream stream(unique_ss);
 
             stream << fasta.readAll();
             structure.remove('_'); // some algorithms are adding '_' onto structure
@@ -265,12 +267,24 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
             stream << "\n" << structure;
             stream.flush();
 
-            fasta.close();
-            fstruct.close();
-        }
 
-        tabWindow->show(filename);
+
+            fasta.close();
+
+
+
+
+        if(!plottedFiles.contains(file_path)){
+            tabWindow->show(unique_ss->fileName());
+        } else{
+            tabWindow->showHighlighted(unique_ss->fileName(), plottedFiles.value(file_path));
+        }
+        plottedFiles.insert(file_path, unique_ss->fileName());
+
     }
+
+    unique_ss->close();
+
 }
 
 //This method loads the dll from the given filepath and returns it in type IAlgorithm

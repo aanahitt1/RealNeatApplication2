@@ -58,6 +58,7 @@ private:
     int FASTAcount;
     GraphicsWindow* tabWindow;
     PluginManager* manager;
+    QHash<QString,QString> plottedFiles;
 
 };
 #endif // MAINWINDOW_H

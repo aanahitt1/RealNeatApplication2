@@ -1,17 +1,11 @@
 #include "rnamodelgen.h"
 
-#include <QTemporaryFile>
-#include <QTextStream>
-#include <QDebug>
-#include <QSaveFile>
-#include <QDir>
-
 RNAModelGen::RNAModelGen()
 {
 
 }
 
-QFile* RNAModelGen::generate2DModel(QString fasta_file){
+QFile* RNAModelGen::generate2DModel(const QString fasta_file){
 
     //check to make sure file is a valid file
     if(!QFileInfo::exists(fasta_file) && QFileInfo(fasta_file).isFile())
@@ -34,9 +28,10 @@ QFile* RNAModelGen::generate2DModel(QString fasta_file){
 
 
     //open svg file saved (output of RNAPlot)
-    QString svg_file = QDir().absolutePath() + "/" + validateFasta(fasta_file).append("_ss.svg");
-    QFile rnaplot_output(svg_file);
-    qDebug() << "SVG File: " << svg_file;
+    modelName = validateFasta(fasta_file);
+   QString rna_o = QDir().absolutePath() + "/" + modelName.append("_ss.svg");
+    QFile rnaplot_output(rna_o);
+    qDebug() << "SVG File: " << rna_o;
 
 
 
@@ -47,7 +42,7 @@ QFile* RNAModelGen::generate2DModel(QString fasta_file){
        }else
            qCritical() << "Temp File name: " << unique_svg->fileName();
 
-     QString rnaPictFile = unique_svg->fileName();
+     modelFile = unique_svg->fileName();
 
 
     if(!rnaplot_output.open(QIODevice::ReadWrite)){
@@ -64,7 +59,7 @@ QFile* RNAModelGen::generate2DModel(QString fasta_file){
     rnaplot_output.close();
     unique_svg->close();
 
-    if(!QFile::remove(svg_file))
+    if(!QFile::remove(rna_o))
         qWarning() << "Could not remove RNAPlot SVG file";
 
 
@@ -73,8 +68,8 @@ QFile* RNAModelGen::generate2DModel(QString fasta_file){
 }
 
 // checks the given structure file to ensure it has a fasta header
-// and if it does the header is returned
-QString RNAModelGen::validateFasta(QString filepath){
+// and if it does the 'name' in the header is returned
+QString RNAModelGen::validateFasta(const QString filepath){
     QFile sec_strc(filepath);
 
     if(!sec_strc.open(QIODevice::ReadWrite)){
@@ -102,6 +97,104 @@ QString RNAModelGen::validateFasta(QString filepath){
 
     qCritical() << "Structure file invalid";
     return "";
+}
+
+QFile* RNAModelGen::highlight2DModel(const QString& svgFile, const QString& secStruc1,const QString& secStruc2){
+
+    QHash<int,bool>* highlights = getHighlights(secStruc1, secStruc2);
+    if(highlights == NULL)
+        return NULL;
+
+    QFile* svg_xml = new QFile(svgFile);
+    if(!svg_xml->open(QIODevice::ReadWrite) ){
+        qCritical() << "Could not open SVG XML file";
+        svg_xml->close();
+        return NULL;
+    }
+
+    QDomDocument svgXMLDoc("structure_svg");
+    if(!svgXMLDoc.setContent(svg_xml)){
+        qCritical() << "Could not load XML DOM";
+        return NULL;
+    }
+
+
+    QDomNodeList graphics = svgXMLDoc.elementsByTagName("g");
+    QDomNode graphicsRoot = graphics.at(0);
+    QDomNode graph_bases = graphics.at(2);
+    QDomNodeList pline = svgXMLDoc.elementsByTagName("polyline");
+    QDomElement polyline = pline.at(0).toElement();
+    QDomNodeList base_specs = graph_bases.childNodes();
+
+    //create highlights
+    QDomElement highlightElements = svgXMLDoc.createElement("g");
+    highlightElements.setAttribute("id", "highlights");
+
+
+
+    for(int i=0; i<base_specs.size(); i++){
+
+        if(highlights->contains(i)){
+        QDomElement base = base_specs.at(i).toElement();
+
+        QDomElement hl = svgXMLDoc.createElement("circle");
+        hl.setAttribute("cx", base.attributeNode("x").value());
+        hl.setAttribute("cy",base.attributeNode("y").value());
+        hl.setAttribute("r","7");
+        hl.setAttribute("fill","yellow");
+        highlightElements.appendChild(hl);
+        }
+
+    }
+
+     graphicsRoot.insertBefore(highlightElements,polyline);
+
+
+     svg_xml->close();
+     svg_xml->open(QIODevice::ReadWrite | QIODevice::Truncate);
+     QTextStream stream( svg_xml );
+     stream << svgXMLDoc.toString();
+
+    return svg_xml;
+}
+
+QHash<int,bool>* RNAModelGen::getHighlights(const QString &struc1, const QString &struc2){
+    QFile ss1(struc1);
+    QFile ss2(struc2);
+    if(! (ss1.open(QIODevice::ReadOnly) && ss2.open(QIODevice::ReadOnly))){
+        qCritical() << "Could not open file for structure comparison";
+        return NULL;
+    }
+
+    for(int i=0; i<3; i++){
+        ss1.readLine();
+        ss2.readLine();
+    }
+
+    QTextStream in1(&ss1);
+    QTextStream in2(&ss2);
+
+    QHash<int,bool>* highlights = new QHash<int,bool>();
+    QChar c1, c2;
+    int i = 0;
+    while(! (in1.atEnd() || in2.atEnd()) ){
+        in1 >> c1;
+        in2 >> c2;
+        if( c1 != c2)
+            highlights->insert(i,true);
+        i++;
+    }
+
+    return highlights;
+
+}
+
+QString RNAModelGen::get2DModelFile(){
+    return modelFile;
+}
+
+QString RNAModelGen::get2DModelName(){
+    return modelName;
 }
 
 void RNAModelGen::processError(QProcess::ProcessError error){
