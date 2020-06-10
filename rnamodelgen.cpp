@@ -31,7 +31,6 @@ QFile* RNAModelGen::generate2DModel(const QString fasta_file){
     modelName = validateFasta(fasta_file);
    QString rna_o = QDir().absolutePath() + "/" + modelName.append("_ss.svg");
     QFile rnaplot_output(rna_o);
-    qDebug() << "SVG File: " << rna_o;
 
 
 
@@ -39,8 +38,7 @@ QFile* RNAModelGen::generate2DModel(const QString fasta_file){
     QTemporaryFile* unique_svg = new QTemporaryFile("rnaPictXXXXXX.svg");
       if(!unique_svg->open()){
            qCritical() << "Did not open temp file!";
-       }else
-           qCritical() << "Temp File name: " << unique_svg->fileName();
+       }
 
      modelFile = unique_svg->fileName();
 
@@ -51,9 +49,7 @@ QFile* RNAModelGen::generate2DModel(const QString fasta_file){
 
     //copy contents of RNAPlot output to unique file
     unique_svg->write(rnaplot_output.readAll());
-
-    if(!unique_svg->waitForReadyRead(-1))
-        qCritical() << "Did not copy file";
+    unique_svg->waitForReadyRead(-1);
 
 
     rnaplot_output.close();
@@ -131,7 +127,8 @@ QFile* RNAModelGen::highlight2DModel(const QString& svgFile, const QString& secS
     highlightElements.setAttribute("id", "highlights");
 
 
-
+// draw circles for the bases that have a different structure compared
+// to last plotted sequence
     for(int i=0; i<base_specs.size(); i++){
 
         if(highlights->contains(i)){
@@ -149,7 +146,7 @@ QFile* RNAModelGen::highlight2DModel(const QString& svgFile, const QString& secS
 
      graphicsRoot.insertBefore(highlightElements,polyline);
 
-
+//overwrite SVG file with the version containing highlightsS
      svg_xml->close();
      svg_xml->open(QIODevice::ReadWrite | QIODevice::Truncate);
      QTextStream stream( svg_xml );
@@ -158,6 +155,8 @@ QFile* RNAModelGen::highlight2DModel(const QString& svgFile, const QString& secS
     return svg_xml;
 }
 
+// check which structure portions (if any) are different from the last plotted
+// sequence and record the location of the portions which are different
 QHash<int,bool>* RNAModelGen::getHighlights(const QString &struc1, const QString &struc2){
     QFile ss1(struc1);
     QFile ss2(struc2);
@@ -166,27 +165,64 @@ QHash<int,bool>* RNAModelGen::getHighlights(const QString &struc1, const QString
         return NULL;
     }
 
-    for(int i=0; i<3; i++){
-        ss1.readLine();
-        ss2.readLine();
+    if(!advanceToStrucLine(ss1)){
+        qCritical() << "File " << ss1.fileName() << "has no structure";
+        return NULL;
     }
 
+    if(!advanceToStrucLine(ss2)){
+        qCritical() << "File " << ss2.fileName() << "has no structure";
+        return NULL;
+    }
+
+    char c1, c2;
     QTextStream in1(&ss1);
     QTextStream in2(&ss2);
 
     QHash<int,bool>* highlights = new QHash<int,bool>();
-    QChar c1, c2;
     int i = 0;
     while(! (in1.atEnd() || in2.atEnd()) ){
         in1 >> c1;
         in2 >> c2;
+
+        // check to see if the structure line has ended
+        // if the stuctr line has only ended for one
+        // they are not the same length
+        if(c1 == '\n' && c2 == '\n')
+            break;
+        if(c1 == '\n' || c2 == '\n'){
+            qCritical() << "Structures not same length";
+            return NULL;
+        }
+
         if( c1 != c2)
             highlights->insert(i,true);
         i++;
     }
 
+
     return highlights;
 
+}
+
+// Takes a QFile holding a sec struct fasta file and
+// advances it to the line with the structure
+bool RNAModelGen::advanceToStrucLine(QFile& ss){
+    char c1;
+    bool ss_OnSeqLine = false;
+    while(!ss_OnSeqLine){
+
+        ss.readLine();
+        ss.peek(&c1, 1);
+
+        if(c1 == '.' || c1 == '(' || c1 == '[')
+            ss_OnSeqLine = true;
+
+        if(ss.atEnd()){
+            return false;
+        }
+    }
+    return true;
 }
 
 QString RNAModelGen::get2DModelFile(){

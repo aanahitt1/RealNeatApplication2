@@ -28,6 +28,7 @@ public slots:
 private:
     QString validateFasta(const QString);
     QHash<int,bool>* getHighlights(const QString&, const QString&);
+    bool advanceToStrucLine(QFile&);
     QProcess *rnaFold, *rnaPlot;
     QString rnaFoldCmd, rnaPlotCmd;
     QString modelFile, modelName;

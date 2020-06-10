@@ -7,7 +7,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     XML_CONFIG_FILE = QStandardPaths::standardLocations(QStandardPaths::DocumentsLocation).at(0)
             + "/RealNeatApplication2/Config.xml";
-    qInfo() << "XML Config: " << XML_CONFIG_FILE;
 
     //This sets up the main window and sets all bases as they should be.
     ui->setupUi(this);
@@ -254,8 +253,7 @@ void MainWindow::showTab(QMap<QString, double> options, QSharedPointer<IAlgorith
     unique_ss->setAutoRemove(false);
     if(!unique_ss->open()){
          qCritical() << "Did not open temp file!";
-     }else
-         qCritical() << "RNAStruct File name: " << unique_ss->fileName();
+     }
 
     if(fasta.open(QIODevice::ReadOnly)) {
 
